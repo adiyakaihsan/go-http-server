@@ -38,14 +38,13 @@ func createUserHandler(db *sql.DB) http.HandlerFunc {
 		// fmt.Fprintf(w, "Hello World!")
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			log.Fatalf(err.Error())
 			return
 		}
 
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, "Unable to read request body", http.StatusBadRequest)
-			log.Fatalf(err.Error())
+			log.Printf("%s: %v", "Unable to read request body", err)
 			return
 		}
 		defer r.Body.Close()
@@ -54,7 +53,7 @@ func createUserHandler(db *sql.DB) http.HandlerFunc {
 		err = json.Unmarshal(body, &user)
 		if err != nil {
 			http.Error(w, "Invalid JSON", http.StatusBadRequest)
-			log.Fatalf(err.Error())
+			log.Printf("%s: %v", "Invalid JSON", err)
 			return
 		}
 
@@ -63,13 +62,14 @@ func createUserHandler(db *sql.DB) http.HandlerFunc {
 		_, err = db.Exec(sqlStatement, user.Username, user.Password)
 
 		if err != nil {
+			fmt.Print("here")
 			http.Error(w, "Error inserting user", http.StatusInternalServerError)
-			log.Fatalf(err.Error())
+			log.Printf("%s: %v", "Error inserting user", err)
 			return
 		}
 
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte("User created Successfuly"))
+		// w.Write([]byte("User created Successfuly"))
 	}
 }
 
