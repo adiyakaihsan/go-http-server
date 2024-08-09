@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 
@@ -25,8 +25,7 @@ const (
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	// fmt.Fprintf(w, "Hello World!")
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		fmt.Println("Error reading request body")
 	}
@@ -35,13 +34,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 func createUserHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// fmt.Fprintf(w, "Hello World!")
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, "Unable to read request body", http.StatusBadRequest)
 			log.Printf("%s: %v", "Unable to read request body", err)
@@ -69,8 +67,51 @@ func createUserHandler(db *sql.DB) http.HandlerFunc {
 		}
 
 		w.WriteHeader(http.StatusCreated)
-		// w.Write([]byte("User created Successfuly"))
 	}
+}
+
+func getUserHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request){
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "unable to read request body", http.StatusBadRequest)
+			log.Printf("%s: %v", "Error reading request body", err)
+		}
+
+		defer r.Body.Close()
+		var user map[string]interface{}
+		err = json.Unmarshal(body, &user)
+		if err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			log.Printf("%s: %v", "Invalid JSON", err)
+			return
+		}
+
+		sqlStatement := `SELECT username FROM users WHERE username=$1`
+		// QUESTION: why some method in GO doesn't have err return like below?
+		row := db.QueryRow(sqlStatement, user["username"])
+
+		var username string
+		err = row.Scan(&username)
+		if err != nil {
+			http.Error(w, "Error retrieving Data", http.StatusInternalServerError)
+			log.Printf("Error retrieving Data: %v", err)
+			return
+		}
+
+
+		w.Header().Set("Content-Type", "application/json")
+		jsonResponse, err := json.Marshal(username)
+		if err != nil {
+			http.Error(w, "Error creating JSON response", http.StatusInternalServerError)
+			log.Printf("Error marshaling response: %v", err)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write(jsonResponse)
+
+	}
+	
 }
 
 func main() {
@@ -97,6 +138,7 @@ func main() {
 
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/createUser",createUserHandler(db))
+	http.HandleFunc("/getUser", getUserHandler(db))
 
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		fmt.Println("Error starting server")
