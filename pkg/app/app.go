@@ -10,23 +10,14 @@ import (
 )
 
 func Run() {
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		config.Db_host, config.Db_port, config.Db_username, config.Db_password, config.Db_name)
-
-	db, err := sql.Open("postgres", psqlInfo)
+	db, err := setupDb()
 	if err != nil {
 		log.Fatalf("Error Opening database: %v", err)
+		return
 	}
-
 	defer db.Close()
 
-	err = db.Ping()
-	if err != nil {
-		log.Fatalf("Error connecting to database: %v", err)
-	}
-
 	fmt.Println("Successfully connected to Database")
-
 	fmt.Println("Hello, Go!")
 	fmt.Println("Starting server on port 8080")
 
@@ -37,4 +28,21 @@ func Run() {
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		fmt.Println("Error starting server")
 	}
+}
+
+func setupDb() (*sql.DB, error) {
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		config.Db_host, config.Db_port, config.Db_username, config.Db_password, config.Db_name)
+
+	db, err := sql.Open("postgres", psqlInfo)
+	if err != nil {
+		return db, err
+	}
+
+	err = db.Ping()
+	if err != nil {
+		return db, err
+	}
+
+	return db, nil
 }
