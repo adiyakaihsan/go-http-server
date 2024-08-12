@@ -11,15 +11,20 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// 1. Structure: https://github.com/golang-standards/project-layout
+// - cmd
+// - pkg
+// 2.
+
 type User struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
 const (
-	db_host = "localhost"
-	db_port = 5432
-	db_name = "production"
+	db_host     = "localhost"
+	db_port     = 5432
+	db_name     = "production"
 	db_username = "app_go"
 	db_password = "app12345"
 )
@@ -56,7 +61,7 @@ func createUserHandler(db *sql.DB) http.HandlerFunc {
 		}
 
 		sqlStatement := `INSERT INTO users (username, password) VALUES ($1, $2)`
-		
+
 		_, err = db.Exec(sqlStatement, user.Username, user.Password)
 
 		if err != nil {
@@ -71,7 +76,7 @@ func createUserHandler(db *sql.DB) http.HandlerFunc {
 }
 
 func getUserHandler(db *sql.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request){
+	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, "unable to read request body", http.StatusBadRequest)
@@ -99,7 +104,6 @@ func getUserHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-
 		w.Header().Set("Content-Type", "application/json")
 		jsonResponse, err := json.Marshal(username)
 		if err != nil {
@@ -111,13 +115,13 @@ func getUserHandler(db *sql.DB) http.HandlerFunc {
 		w.Write(jsonResponse)
 
 	}
-	
+
 }
 
 func main() {
 
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", 
-				db_host, db_port, db_username, db_password, db_name)
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		db_host, db_port, db_username, db_password, db_name)
 
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
@@ -133,11 +137,11 @@ func main() {
 
 	fmt.Println("Successfully connected to Database")
 
-    fmt.Println("Hello, Go!")
+	fmt.Println("Hello, Go!")
 	fmt.Println("Starting server on port 8080")
 
 	http.HandleFunc("/", handler)
-	http.HandleFunc("/createUser",createUserHandler(db))
+	http.HandleFunc("/createUser", createUserHandler(db))
 	http.HandleFunc("/getUser", getUserHandler(db))
 
 	if err := http.ListenAndServe(":8080", nil); err != nil {
