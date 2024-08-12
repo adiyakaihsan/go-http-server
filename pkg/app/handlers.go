@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"database/sql"
@@ -8,28 +8,10 @@ import (
 	"log"
 	"net/http"
 
-	_ "github.com/lib/pq"
+	"github.com/adiyakaihsan/go-http-server/pkg/types"
 )
 
-// 1. Structure: https://github.com/golang-standards/project-layout
-// - cmd
-// - pkg
-// 2.
-
-type User struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-const (
-	db_host     = "localhost"
-	db_port     = 5432
-	db_name     = "production"
-	db_username = "app_go"
-	db_password = "app12345"
-)
-
-func handler(w http.ResponseWriter, r *http.Request) {
+func rootHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		fmt.Println("Error reading request body")
@@ -52,7 +34,7 @@ func createUserHandler(db *sql.DB) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		var user User
+		var user types.User
 		err = json.Unmarshal(body, &user)
 		if err != nil {
 			http.Error(w, "Invalid JSON", http.StatusBadRequest)
@@ -116,35 +98,4 @@ func getUserHandler(db *sql.DB) http.HandlerFunc {
 
 	}
 
-}
-
-func main() {
-
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		db_host, db_port, db_username, db_password, db_name)
-
-	db, err := sql.Open("postgres", psqlInfo)
-	if err != nil {
-		log.Fatalf("Error Opening database: %v", err)
-	}
-
-	defer db.Close()
-
-	err = db.Ping()
-	if err != nil {
-		log.Fatalf("Error connecting to database: %v", err)
-	}
-
-	fmt.Println("Successfully connected to Database")
-
-	fmt.Println("Hello, Go!")
-	fmt.Println("Starting server on port 8080")
-
-	http.HandleFunc("/", handler)
-	http.HandleFunc("/createUser", createUserHandler(db))
-	http.HandleFunc("/getUser", getUserHandler(db))
-
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		fmt.Println("Error starting server")
-	}
 }
