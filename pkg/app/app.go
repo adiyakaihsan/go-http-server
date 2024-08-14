@@ -22,7 +22,7 @@ func connectDB() (*sql.DB, error) {
 	return db, err
 }
 
-// TODO: belajar tentang struct, methods, pointers
+// TODO: belajar tentang struct, methods, pointers, pass by value, pass by reference
 type App struct {
 	db *sql.DB
 }
