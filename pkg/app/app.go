@@ -9,9 +9,9 @@ import (
 	"github.com/adiyakaihsan/go-http-server/pkg/config"
 )
 
-func connectDB() (*sql.DB, error)  {
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", 
-				config.Db_host, config.Db_port, config.Db_username, config.Db_password, config.Db_name)
+func connectDB() (*sql.DB, error) {
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		config.Db_host, config.Db_port, config.Db_username, config.Db_password, config.Db_name)
 
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
@@ -22,6 +22,11 @@ func connectDB() (*sql.DB, error)  {
 	return db, err
 }
 
+// TODO: belajar tentang struct, methods, pointers
+type App struct {
+	db *sql.DB
+}
+
 func Run() {
 	db, err := connectDB()
 	if err != nil {
@@ -29,12 +34,15 @@ func Run() {
 	}
 	defer db.Close()
 
-    fmt.Println("Hello, Go!")
+	fmt.Println("Hello, Go!")
 	fmt.Println("Starting server on port 8080")
 
+	app := App{}
+	app.db = db
+
 	http.HandleFunc("/", rootHandler)
-	http.HandleFunc("/createUser",createUserHandler(db))
-	http.HandleFunc("/getUser", getUserHandler(db))
+	http.HandleFunc("/createUser", app.createUserHandler)
+	http.HandleFunc("/getUser", app.getUserHandler)
 
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		fmt.Println("Error starting server")
