@@ -39,6 +39,8 @@ func Run() {
 	app := App{}
 	app.db = db
 
+	// TODO: https://github.com/julienschmidt/httprouter
+	// TODO: REST API
 	http.HandleFunc("/", rootHandler)
 	http.HandleFunc("/createUser",app.createUserHandler)
 	http.HandleFunc("/getUser", app.getUserHandler)
