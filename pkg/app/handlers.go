@@ -8,11 +8,21 @@ import (
 
 	"github.com/adiyakaihsan/go-http-server/pkg/types"
 	"github.com/julienschmidt/httprouter"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func rootHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
+}
+
+func hashPassword(password string) (string, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password),bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+
+	return string(hashedPassword), nil
 }
 
 func (app App) createUserHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -26,9 +36,16 @@ func (app App) createUserHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
+	hashedPassword, err := hashPassword(user.Password)
+	if err != nil {
+		http.Error(w, "Error inserting user", http.StatusInternalServerError)
+		log.Printf("%s: %v", "Error when hashing password user", err)
+		return
+	}
+
 	sqlStatement := `INSERT INTO users (username, password) VALUES ($1, $2)`
 
-	_, err = app.db.Exec(sqlStatement, user.Username, user.Password)
+	_, err = app.db.Exec(sqlStatement, user.Username, hashedPassword)
 
 	if err != nil {
 		http.Error(w, "Error inserting user", http.StatusInternalServerError)
