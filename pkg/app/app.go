@@ -14,9 +14,9 @@ type App struct {
 	db *sql.DB
 }
 
-func connectDB() (*sql.DB, error)  {
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", 
-				config.Db_host, config.Db_port, config.Db_username, config.Db_password, config.Db_name)
+func connectDB() (*sql.DB, error) {
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		config.Db_host, config.Db_port, config.Db_username, config.Db_password, config.Db_name)
 
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
@@ -40,12 +40,10 @@ func Run() {
 	router := httprouter.New()
 
 	router.GET("/", rootHandler)
-	router.GET("/getUser", app.getUserHandler)
-	router.POST("/createUser", app.createUserHandler)
+	router.GET("/v1/users/:id", app.getUserHandler)
+	router.POST("/v1/users", app.createUserHandler)
 
 	fmt.Println("Starting server on port 8080")
-	
-	// TODO: REST API
 
 	if err := http.ListenAndServe(":8080", router); err != nil {
 		fmt.Println("Error starting server")
