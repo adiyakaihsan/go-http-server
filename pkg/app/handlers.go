@@ -8,9 +8,10 @@ import (
 	"net/http"
 
 	"github.com/adiyakaihsan/go-http-server/pkg/types"
+	"github.com/julienschmidt/httprouter"
 )
 
-func rootHandler(w http.ResponseWriter, r *http.Request) {
+func rootHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		fmt.Println("Error reading request body")
@@ -18,7 +19,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(body)
 }
 
-func (app App) createUserHandler(w http.ResponseWriter, r *http.Request) {
+func (app App) createUserHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -54,7 +55,7 @@ func (app App) createUserHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (app App) getUserHandler(w http.ResponseWriter, r *http.Request){
+func (app App) getUserHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params){
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "unable to read request body", http.StatusBadRequest)

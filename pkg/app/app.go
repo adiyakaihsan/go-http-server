@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/adiyakaihsan/go-http-server/pkg/config"
+	"github.com/julienschmidt/httprouter"
 )
 
 type App struct {
@@ -33,19 +34,20 @@ func Run() {
 	}
 	defer db.Close()
 
-    fmt.Println("Hello, Go!")
-	fmt.Println("Starting server on port 8080")
-	
 	app := App{}
 	app.db = db
 
-	// TODO: https://github.com/julienschmidt/httprouter
-	// TODO: REST API
-	http.HandleFunc("/", rootHandler)
-	http.HandleFunc("/createUser",app.createUserHandler)
-	http.HandleFunc("/getUser", app.getUserHandler)
+	router := httprouter.New()
 
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	router.GET("/", rootHandler)
+	router.GET("/getUser", app.getUserHandler)
+	router.POST("/createUser", app.createUserHandler)
+
+	fmt.Println("Starting server on port 8080")
+	
+	// TODO: REST API
+
+	if err := http.ListenAndServe(":8080", router); err != nil {
 		fmt.Println("Error starting server")
 	}
 }
