@@ -35,7 +35,7 @@ func (app App) createVideoHandler(w http.ResponseWriter, r *http.Request, _ http
 }
 
 func (app App) getAllVideosHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	var videos []types.Video
+	var videosResponse []types.VideoResponse
 
 	rows, err := app.db.Query("Select id, title, description, category_id FROM videos")
 	if err != nil {
@@ -47,15 +47,15 @@ func (app App) getAllVideosHandler(w http.ResponseWriter, r *http.Request, _ htt
 	defer rows.Close()
 
 	for rows.Next() {
-		var video types.Video
-		err := rows.Scan(&video.ID, &video.Title, &video.Description, &video.CategoryID)
+		var videoResponse types.VideoResponse
+		err := rows.Scan(&videoResponse.ID, &videoResponse.Title, &videoResponse.Description, &videoResponse.CategoryID)
 
 		if err != nil {
 			http.Error(w, "Error Scanning Rows", http.StatusInternalServerError)
 			log.Printf("Error Scanning Rows: %v", err)
 			return
 		}
-		videos = append(videos, video)
+		videosResponse = append(videosResponse, videoResponse)
 	}
 
 	if err = rows.Err(); err != nil {
@@ -66,15 +66,15 @@ func (app App) getAllVideosHandler(w http.ResponseWriter, r *http.Request, _ htt
 
 	w.Header().Set("Content-Type", "application/json")
 
-	json.NewEncoder(w).Encode(videos)
+	json.NewEncoder(w).Encode(videosResponse)
 }
 
 func (app App) getVideoHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	var video types.Video
+	var videoResponse types.VideoResponse
 
 	id := ps.ByName("id")
 
-	err := app.db.QueryRow("SELECT id, title, description, category_id  FROM videos WHERE id = $1", id).Scan(&video.ID, &video.Title, &video.Description, &video.CategoryID)
+	err := app.db.QueryRow("SELECT id, title, description, category_id  FROM videos WHERE id = $1", id).Scan(&videoResponse.ID, &videoResponse.Title, &videoResponse.Description, &videoResponse.CategoryID)
 
 	if err == sql.ErrNoRows {
 		http.Error(w, "video Not Found", http.StatusNotFound)
@@ -88,6 +88,6 @@ func (app App) getVideoHandler(w http.ResponseWriter, r *http.Request, ps httpro
 
 	w.Header().Set("Content-Type", "application/json")
 
-	json.NewEncoder(w).Encode(video)
+	json.NewEncoder(w).Encode(videoResponse)
 
 }
