@@ -34,6 +34,41 @@ func (app App) createCategoryHandler(w http.ResponseWriter, r *http.Request, _ h
 	w.WriteHeader(http.StatusCreated)
 }
 
+func (app App) getAllCategoriesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var categories []types.Category
+
+	rows, err := app.db.Query("Select id, name FROM categories")
+	if err != nil {
+		http.Error(w, "Error retrieving Data", http.StatusInternalServerError)
+		log.Printf("Error retrieving Data: %v", err)
+		return
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var category types.Category
+		err := rows.Scan(&category.ID, &category.Name)
+
+		if err != nil {
+			http.Error(w, "Error Scanning Rows", http.StatusInternalServerError)
+			log.Printf("Error Scanning Rows: %v", err)
+			return
+		}
+		categories = append(categories, category)
+	}
+
+	if err = rows.Err(); err != nil {
+		http.Error(w, "Error iterating rows", http.StatusInternalServerError)
+		log.Printf("Error iterating rows: %v", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(categories)
+}
+
 func (app App) getCategoryHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	var category types.Category
 

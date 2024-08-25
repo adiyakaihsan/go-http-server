@@ -34,6 +34,41 @@ func (app App) createVideoHandler(w http.ResponseWriter, r *http.Request, _ http
 	w.WriteHeader(http.StatusCreated)
 }
 
+func (app App) getAllVideosHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var videos []types.Video
+
+	rows, err := app.db.Query("Select id, title, description, category_id FROM videos")
+	if err != nil {
+		http.Error(w, "Error retrieving Data", http.StatusInternalServerError)
+		log.Printf("Error retrieving Data: %v", err)
+		return
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var video types.Video
+		err := rows.Scan(&video.ID, &video.Title, &video.Description, &video.CategoryID)
+
+		if err != nil {
+			http.Error(w, "Error Scanning Rows", http.StatusInternalServerError)
+			log.Printf("Error Scanning Rows: %v", err)
+			return
+		}
+		videos = append(videos, video)
+	}
+
+	if err = rows.Err(); err != nil {
+		http.Error(w, "Error iterating rows", http.StatusInternalServerError)
+		log.Printf("Error iterating rows: %v", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(videos)
+}
+
 func (app App) getVideoHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	var video types.Video
 
