@@ -1,11 +1,11 @@
-CREATE TABLE Categories (
+CREATE TABLE categories (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL
 );
 
-CREATE TABLE Videos (
+CREATE TABLE videos (
     id serial PRIMARY KEY,
-    title TEXT NOT NULL,
+    title varchar(100) NOT NULL,
     description TEXT,
-    category_id INT REFERENCES Categories(id)
+    category_id INT REFERENCES categories(id)
 );
