@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS Videos;
+DROP TABLE IF EXISTS Categories;

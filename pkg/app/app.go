@@ -40,8 +40,15 @@ func Run() {
 	router := httprouter.New()
 
 	router.GET("/", rootHandler)
+	router.GET("/v1/users", app.getAllUsersHandler)
 	router.GET("/v1/users/:id", app.getUserHandler)
 	router.POST("/v1/users", app.createUserHandler)
+	router.GET("/v1/videos", app.getAllVideosHandler)
+	router.GET("/v1/videos/:id", app.getVideoHandler)
+	router.POST("/v1/videos", app.createVideoHandler)
+	router.GET("/v1/categories", app.getAllCategoriesHandler)
+	router.GET("/v1/categories/:id", app.getCategoryHandler)
+	router.POST("/v1/categories", app.createCategoryHandler)
 
 	fmt.Println("Starting server on port 8080")
 

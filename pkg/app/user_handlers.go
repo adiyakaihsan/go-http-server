@@ -17,7 +17,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 }
 
 func hashPassword(password string) (string, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password),bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
 	}
@@ -54,6 +54,41 @@ func (app App) createUserHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	}
 
 	w.WriteHeader(http.StatusCreated)
+}
+
+func (app App) getAllUsersHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var users []types.User
+
+	rows, err := app.db.Query("Select id, username FROM users")
+	if err != nil {
+		http.Error(w, "Error retrieving Data", http.StatusInternalServerError)
+		log.Printf("Error retrieving Data: %v", err)
+		return
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var user types.User
+		err := rows.Scan(&user.ID, &user.Username)
+
+		if err != nil {
+			http.Error(w, "Error Scanning Rows", http.StatusInternalServerError)
+			log.Printf("Error Scanning Rows: %v", err)
+			return
+		}
+		users = append(users, user)
+	}
+
+	if err = rows.Err(); err != nil {
+		http.Error(w, "Error iterating rows", http.StatusInternalServerError)
+		log.Printf("Error iterating rows: %v", err)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(users)
 }
 
 func (app App) getUserHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
