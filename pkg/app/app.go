@@ -50,9 +50,11 @@ func Run() {
 	router.GET("/v1/categories/:id", app.getCategoryHandler)
 	router.POST("/v1/categories", app.createCategoryHandler)
 
+	loggedRouter := middleware(router)
+
 	fmt.Println("Starting server on port 8080")
 
-	if err := http.ListenAndServe(":8080", router); err != nil {
+	if err := http.ListenAndServe(":8080", loggedRouter); err != nil {
 		fmt.Println("Error starting server")
 	}
 }
