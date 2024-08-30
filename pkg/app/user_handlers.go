@@ -45,7 +45,7 @@ func generateJWTToken(id int, username string) []byte {
 		claims,
 	)
 	log.Printf("%s: %v", "Token", token)
-	signedToken, err := token.SignedString(config.JWT_SIGNATURE_KEY)
+	signedToken, err := token.SignedString([]byte(config.JWT_SIGNATURE_KEY))
 	if err != nil {
 		log.Printf("%s: %v", "Error when generating token", err)
 		return nil
