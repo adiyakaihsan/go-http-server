@@ -5,8 +5,11 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
+	"github.com/adiyakaihsan/go-http-server/pkg/config"
 	"github.com/adiyakaihsan/go-http-server/pkg/types"
+	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/julienschmidt/httprouter"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -23,6 +26,36 @@ func hashPassword(password string) (string, error) {
 	}
 
 	return string(hashedPassword), nil
+}
+
+func generateJWTToken(id int, username string) []byte {
+	// var JWT_SIGNING_METHOD jwt.SigningMethodHS256
+
+	claims := types.Claims{
+		StandardClaims: jwt.StandardClaims{
+			Issuer:    config.APP_NAME,
+			ExpiresAt: time.Now().Add(config.LOGIN_EXPIRATION_DURATION).Unix(),
+		},
+		ID:       id,
+		Username: username,
+	}
+
+	token := jwt.NewWithClaims(
+		jwt.SigningMethodHS256,
+		claims,
+	)
+	log.Printf("%s: %v", "Token", token)
+	signedToken, err := token.SignedString(config.JWT_SIGNATURE_KEY)
+	if err != nil {
+		log.Printf("%s: %v", "Error when generating token", err)
+		return nil
+	}
+
+	tokenResponse := types.TokenResponse{Token: signedToken}
+
+	token_string, _ := json.Marshal(tokenResponse)
+
+	return token_string
 }
 
 func (app App) createUserHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -56,6 +89,50 @@ func (app App) createUserHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	w.WriteHeader(http.StatusCreated)
 }
 
+func (app App) loginUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var user types.User
+	var hashedPassword string
+	err := json.NewDecoder(r.Body).Decode(&user)
+
+	if err != nil {
+		http.Error(w, "Unable to read request body", http.StatusBadRequest)
+		log.Printf("%s: %v", "Unable to read request body", err)
+		return
+	}
+
+	if err != nil {
+		http.Error(w, "Internal Error", http.StatusInternalServerError)
+		log.Printf("%s: %v", "Error when hashing password user", err)
+		return
+	}
+
+	err = app.db.QueryRow("SELECT id,password FROM users WHERE username = $1", user.Username).Scan(&user.ID, &hashedPassword)
+
+	if err == sql.ErrNoRows {
+		http.Error(w, "Invalid Login", http.StatusNotFound)
+		log.Printf("User with Username: %v invalid login pass: %v", user.Username, hashedPassword)
+		return
+	} else if err != nil {
+		http.Error(w, "Error retrieving Data", http.StatusInternalServerError)
+		log.Printf("Error retrieving Data: %v", err)
+		return
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(user.Password))
+
+	if err != nil {
+		http.Error(w, "Invalid Login", http.StatusNotFound)
+		log.Printf("User with Username: %v invalid login pass: %v", user.Username, hashedPassword)
+		return
+	}
+
+	jwt_token := generateJWTToken(user.ID, user.Username)
+
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(jwt_token)
+}
+
 func (app App) getAllUsersHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var users []types.User
 
@@ -85,7 +162,7 @@ func (app App) getAllUsersHandler(w http.ResponseWriter, r *http.Request, _ http
 		log.Printf("Error iterating rows: %v", err)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(users)

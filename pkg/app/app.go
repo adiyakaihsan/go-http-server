@@ -43,6 +43,7 @@ func Run() {
 	router.GET("/v1/users", app.getAllUsersHandler)
 	router.GET("/v1/users/:id", app.getUserHandler)
 	router.POST("/v1/users", app.createUserHandler)
+	router.POST("/v1/users/login", app.loginUser)
 	router.GET("/v1/videos", app.getAllVideosHandler)
 	router.GET("/v1/videos/:id", app.getVideoHandler)
 	router.POST("/v1/videos", app.createVideoHandler)
