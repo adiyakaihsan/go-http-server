@@ -28,7 +28,7 @@ func hashPassword(password string) (string, error) {
 	return string(hashedPassword), nil
 }
 
-func generateJWTToken(id int, username string) []byte {
+func generateJWTToken(id int, username string) (types.TokenResponse, error) {
 	// var JWT_SIGNING_METHOD jwt.SigningMethodHS256
 
 	claims := types.Claims{
@@ -48,14 +48,17 @@ func generateJWTToken(id int, username string) []byte {
 	signedToken, err := token.SignedString([]byte(config.JWT_SIGNATURE_KEY))
 	if err != nil {
 		log.Printf("%s: %v", "Error when generating token", err)
-		return nil
+		return types.TokenResponse{}, err
 	}
 
 	tokenResponse := types.TokenResponse{Token: signedToken}
+	log.Printf("%s: %v", "isi tokenResponse", tokenResponse)
 
-	token_string, _ := json.Marshal(tokenResponse)
+	// token_string, _ := json.Marshal(tokenResponse)
 
-	return token_string
+	// log.Printf("%s: %v", "isi token_string", token_string)
+
+	return tokenResponse, nil
 }
 
 func (app App) createUserHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -126,7 +129,13 @@ func (app App) loginUser(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 		return
 	}
 
-	jwt_token := generateJWTToken(user.ID, user.Username)
+	jwt_token, err := generateJWTToken(user.ID, user.Username)
+
+	if err != nil {
+		http.Error(w, "Invalid Login", http.StatusNotFound)
+		log.Printf("Error generating Token: %v", err)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 
