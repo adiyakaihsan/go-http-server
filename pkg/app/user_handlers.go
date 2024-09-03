@@ -5,11 +5,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"time"
 
-	"github.com/adiyakaihsan/go-http-server/pkg/config"
 	"github.com/adiyakaihsan/go-http-server/pkg/types"
-	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/julienschmidt/httprouter"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -26,35 +23,6 @@ func hashPassword(password string) (string, error) {
 	}
 
 	return string(hashedPassword), nil
-}
-
-func generateJWTToken(id int, username string) (types.TokenResponse, error) {
-	// var JWT_SIGNING_METHOD jwt.SigningMethodHS256
-
-	claims := types.Claims{
-		StandardClaims: jwt.StandardClaims{
-			Issuer:    config.APP_NAME,
-			ExpiresAt: time.Now().Add(config.LOGIN_EXPIRATION_DURATION).Unix(),
-		},
-		ID:       id,
-		Username: username,
-	}
-
-	token := jwt.NewWithClaims(
-		jwt.SigningMethodHS256,
-		claims,
-	)
-	log.Printf("%s: %v", "Token", token)
-	signedToken, err := token.SignedString([]byte(config.JWT_SIGNATURE_KEY))
-	if err != nil {
-		log.Printf("%s: %v", "Error when generating token", err)
-		return types.TokenResponse{}, err
-	}
-
-	tokenResponse := types.TokenResponse{Token: signedToken}
-	log.Printf("%s: %v", "isi tokenResponse", tokenResponse)
-
-	return tokenResponse, nil
 }
 
 func (app App) createUserHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -96,12 +64,6 @@ func (app App) loginUser(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	if err != nil {
 		http.Error(w, "Unable to read request body", http.StatusBadRequest)
 		log.Printf("%s: %v", "Unable to read request body", err)
-		return
-	}
-
-	if err != nil {
-		http.Error(w, "Internal Error", http.StatusInternalServerError)
-		log.Printf("%s: %v", "Error when hashing password user", err)
 		return
 	}
 

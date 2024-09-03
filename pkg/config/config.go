@@ -13,4 +13,5 @@ const (
 	APP_NAME                  = "http-server-go"
 	JWT_SIGNATURE_KEY         = "kambing goes over the fence with machine gun"
 	LOGIN_EXPIRATION_DURATION = time.Duration(1) * time.Hour
+	Jwt_signing_method        = "HS256"
 )

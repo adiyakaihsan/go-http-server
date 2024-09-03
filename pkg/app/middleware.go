@@ -2,14 +2,10 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/adiyakaihsan/go-http-server/pkg/config"
-	jwt "github.com/golang-jwt/jwt/v4"
 )
 
 type loggingResponseWriter struct {
@@ -17,6 +13,10 @@ type loggingResponseWriter struct {
 	statusCode int
 	// body []byte
 }
+
+type contextKey string
+
+const userInfoKey contextKey = "userInfo"
 
 func middleware(router http.Handler) http.Handler {
 	return loggingMiddleware(JWTAuthMiddleware(router))
@@ -52,43 +52,15 @@ func JWTAuthMiddleware(next http.Handler) http.Handler {
 				return
 			}
 
-			ctx := context.WithValue(context.Background(), "userInfo", claims)
+			ctx := context.WithValue(context.Background(), userInfoKey, claims)
 
 			r = r.WithContext(ctx)
 
-			// now := time.Now()
 			next.ServeHTTP(w, r)
 		} else {
 			next.ServeHTTP(w, r)
 		}
-		// duration := time.Since(now)
 	})
-}
-
-func parseAuthToken(tokenString string) (jwt.MapClaims, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if method, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("signing method invalid")
-		} else if method != jwt.SigningMethodHS256 {
-			return nil, fmt.Errorf("signing method invalid")
-		}
-
-		return []byte(config.JWT_SIGNATURE_KEY), nil
-	})
-
-	if err != nil {
-		log.Printf("%s: %v", "Error when parsing token", err)
-		return nil, fmt.Errorf("error when parsing token")
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok || !token.Valid {
-		log.Printf("%s: %v", "Error when validating token", err)
-		return nil, fmt.Errorf("error when validating token")
-	}
-
-	return claims, nil
-
 }
 
 func newLoggingResponseWriter(w http.ResponseWriter) *loggingResponseWriter {
