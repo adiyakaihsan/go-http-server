@@ -19,50 +19,54 @@ type loggingResponseWriter struct {
 }
 
 func middleware(router http.Handler) http.Handler {
-	return runThroughMiddleware(router)
+	return loggingMiddleware(JWTAuthMiddleware(router))
 }
 
-func runThroughMiddleware(next http.Handler) http.Handler {
+func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		lrw := newLoggingResponseWriter(w)
 
-		if r.URL.Path == "/v1/users/login" {
-			now := time.Now()
-			next.ServeHTTP(lrw, r)
-			duration := time.Since(now)
-			log.Printf("Received Request: %s %s %dms %d", r.Method, r.URL.Path, duration.Milliseconds(), lrw.statusCode)
-		} else {
+		now := time.Now()
+		next.ServeHTTP(lrw, r)
+		duration := time.Since(now)
+		log.Printf("Received Request: %s %s %dms %d", r.Method, r.URL.Path, duration.Milliseconds(), lrw.statusCode)
+	})
+}
+
+func JWTAuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/users/login" {
 			authorizationHeader := r.Header.Get("Authorization")
 
 			tokenString := strings.Replace(authorizationHeader, "Bearer ", "", -1)
-	
-	
-			if !strings.Contains(authorizationHeader, "Bearer"){
+
+			if !strings.Contains(authorizationHeader, "Bearer") {
 				http.Error(w, "Invalid Token", http.StatusBadRequest)
 				return
 			}
-	
+
 			claims, err := parseAuthToken(tokenString)
-	
+
 			if err != nil {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
-	
+
 			ctx := context.WithValue(context.Background(), "userInfo", claims)
-	
+
 			r = r.WithContext(ctx)
-	
-			now := time.Now()
-			next.ServeHTTP(lrw, r)
-			duration := time.Since(now)
-			log.Printf("Received Request: %s %s %dms %d", r.Method, r.URL.Path, duration.Milliseconds(), lrw.statusCode)
+
+			// now := time.Now()
+			next.ServeHTTP(w, r)
+		} else {
+			next.ServeHTTP(w, r)
 		}
+		// duration := time.Since(now)
 	})
 }
 
 func parseAuthToken(tokenString string) (jwt.MapClaims, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token)(interface{}, error){
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if method, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("signing method invalid")
 		} else if method != jwt.SigningMethodHS256 {
@@ -74,7 +78,7 @@ func parseAuthToken(tokenString string) (jwt.MapClaims, error) {
 
 	if err != nil {
 		log.Printf("%s: %v", "Error when parsing token", err)
-		return nil,fmt.Errorf("error when parsing token")
+		return nil, fmt.Errorf("error when parsing token")
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
@@ -84,7 +88,6 @@ func parseAuthToken(tokenString string) (jwt.MapClaims, error) {
 	}
 
 	return claims, nil
-
 
 }
 
