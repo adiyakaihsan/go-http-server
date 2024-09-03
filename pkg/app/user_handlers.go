@@ -54,10 +54,6 @@ func generateJWTToken(id int, username string) (types.TokenResponse, error) {
 	tokenResponse := types.TokenResponse{Token: signedToken}
 	log.Printf("%s: %v", "isi tokenResponse", tokenResponse)
 
-	// token_string, _ := json.Marshal(tokenResponse)
-
-	// log.Printf("%s: %v", "isi token_string", token_string)
-
 	return tokenResponse, nil
 }
 
