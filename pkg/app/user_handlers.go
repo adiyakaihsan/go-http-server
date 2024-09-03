@@ -56,6 +56,50 @@ func (app App) createUserHandler(w http.ResponseWriter, r *http.Request, _ httpr
 	w.WriteHeader(http.StatusCreated)
 }
 
+func (app App) loginUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var user types.User
+	var hashedPassword string
+	err := json.NewDecoder(r.Body).Decode(&user)
+
+	if err != nil {
+		http.Error(w, "Unable to read request body", http.StatusBadRequest)
+		log.Printf("%s: %v", "Unable to read request body", err)
+		return
+	}
+
+	err = app.db.QueryRow("SELECT id,password FROM users WHERE username = $1", user.Username).Scan(&user.ID, &hashedPassword)
+
+	if err == sql.ErrNoRows {
+		http.Error(w, "Invalid Login", http.StatusNotFound)
+		log.Printf("User with Username: %v invalid login pass: %v", user.Username, hashedPassword)
+		return
+	} else if err != nil {
+		http.Error(w, "Error retrieving Data", http.StatusInternalServerError)
+		log.Printf("Error retrieving Data: %v", err)
+		return
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(user.Password))
+
+	if err != nil {
+		http.Error(w, "Invalid Login", http.StatusNotFound)
+		log.Printf("User with Username: %v invalid login pass: %v", user.Username, hashedPassword)
+		return
+	}
+
+	jwt_token, err := generateJWTToken(user.ID, user.Username)
+
+	if err != nil {
+		http.Error(w, "Invalid Login", http.StatusNotFound)
+		log.Printf("Error generating Token: %v", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(jwt_token)
+}
+
 func (app App) getAllUsersHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var users []types.User
 
@@ -85,7 +129,7 @@ func (app App) getAllUsersHandler(w http.ResponseWriter, r *http.Request, _ http
 		log.Printf("Error iterating rows: %v", err)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(users)
