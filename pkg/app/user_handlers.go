@@ -1,10 +1,12 @@
 package app
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/adiyakaihsan/go-http-server/pkg/types"
 	"github.com/julienschmidt/httprouter"
@@ -103,7 +105,10 @@ func (app App) loginUser(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 func (app App) getAllUsersHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var users []types.User
 
-	rows, err := app.db.Query("Select id, username FROM users")
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	rows, err := app.db.QueryContext(ctx, "Select id, username FROM users")
 	if err != nil {
 		http.Error(w, "Error retrieving Data", http.StatusInternalServerError)
 		log.Printf("Error retrieving Data: %v", err)
