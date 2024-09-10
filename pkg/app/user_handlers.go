@@ -105,21 +105,9 @@ func (app App) loginUser(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 func (app App) getAllUsersHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var users []types.User
 
-
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-    defer cancel()
+	defer cancel()
 
-	// this line only to demonstrate that context timeout works
-	_, err := app.db.ExecContext(ctx, "SELECT pg_sleep(30)")
-
-	if err != nil {
-		log.Printf("Error: %v", err)
-	}
-
-	// cannot use same context probably as because it already canceled, so when used again in queryContext it will error with context deadline exceeded.
-	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
-    defer cancel()
-	
 	rows, err := app.db.QueryContext(ctx, "Select id, username FROM users")
 	if err != nil {
 		http.Error(w, "Error retrieving Data", http.StatusInternalServerError)
