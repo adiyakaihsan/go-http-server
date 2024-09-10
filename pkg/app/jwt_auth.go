@@ -18,14 +18,14 @@ func getDefaultSigningMethod(method string) jwt.SigningMethod {
 	}
 }
 
-func generateJWTToken(id int, username string) (types.TokenResponse, error) {
+func generateJWTToken(user_id int, username string) (types.TokenResponse, error) {
 
 	claims := types.Claims{
 		StandardClaims: jwt.StandardClaims{
 			Issuer:    config.APP_NAME,
 			ExpiresAt: time.Now().Add(config.LOGIN_EXPIRATION_DURATION).Unix(),
 		},
-		ID:       id,
+		UserID:   user_id,
 		Username: username,
 	}
 
@@ -46,7 +46,7 @@ func generateJWTToken(id int, username string) (types.TokenResponse, error) {
 	return tokenResponse, nil
 }
 
-func parseAuthToken(tokenString string) (jwt.MapClaims, error) {
+func parseAuthToken(tokenString string) (*types.Claims, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if method, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("signing method invalid")
@@ -68,6 +68,13 @@ func parseAuthToken(tokenString string) (jwt.MapClaims, error) {
 		return nil, fmt.Errorf("error when validating token")
 	}
 
-	return claims, nil
+	//convert to *types.Claims
+	var result types.Claims
+	result.Username, _ = claims["username"].(string)
+	result.UserID = int(claims["user_id"].(float64))
+	result.ExpiresAt = int64(claims["exp"].(float64))
+	log.Printf("%s: %v", "Isi", claims["user_id"])
+	return &result, nil
+
 
 }

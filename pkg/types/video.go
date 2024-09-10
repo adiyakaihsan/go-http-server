@@ -12,4 +12,5 @@ type VideoResponse struct {
 	Description string `json:"description"`
 	ID          int    `json:"id"`
 	CategoryID  int    `json:"category_id"`
+	Username    string    `json:"username"`
 }
