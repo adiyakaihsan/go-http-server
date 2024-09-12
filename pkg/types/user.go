@@ -10,10 +10,14 @@ type User struct {
 
 type Claims struct {
 	Username string `json:"username"`
-	ID       int    `json:"id"`
+	UserID   int    `json:"user_id"`
 	jwt.StandardClaims
 }
 
 type TokenResponse struct {
-    Token string `json:"token"`
+	Token string `json:"token"`
 }
+
+type contextKey string
+
+const UserInfoKey contextKey = "userInfo"

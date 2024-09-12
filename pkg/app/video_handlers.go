@@ -21,9 +21,19 @@ func (app App) createVideoHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	sqlStatement := `INSERT INTO videos (title, description, category_id) VALUES ($1, $2, $3)`
+	claims, ok := r.Context().Value(types.UserInfoKey).(*types.Claims)
+	if !ok || claims == nil {
+		log.Printf("No claims found or type assertion failed")
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
-	_, err = app.db.Exec(sqlStatement, video.Title, video.Description, video.CategoryID)
+	// Use the claims
+	log.Printf("User ID from claims: %v", claims.UserID)
+
+	sqlStatement := `INSERT INTO videos (title, description, category_id, user_id) VALUES ($1, $2, $3, $4)`
+
+	_, err = app.db.Exec(sqlStatement, video.Title, video.Description, video.CategoryID, claims.UserID)
 
 	if err != nil {
 		http.Error(w, "Error inserting video", http.StatusInternalServerError)
@@ -37,7 +47,7 @@ func (app App) createVideoHandler(w http.ResponseWriter, r *http.Request, _ http
 func (app App) getAllVideosHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	var videosResponse []types.VideoResponse
 
-	rows, err := app.db.Query("Select id, title, description, category_id FROM videos")
+	rows, err := app.db.Query("Select videos.id, videos.title, videos.description, videos.category_id, users.username FROM videos, users WHERE videos.user_id = users.id")
 	if err != nil {
 		http.Error(w, "Error retrieving Data", http.StatusInternalServerError)
 		log.Printf("Error retrieving Data: %v", err)
@@ -48,7 +58,7 @@ func (app App) getAllVideosHandler(w http.ResponseWriter, r *http.Request, _ htt
 
 	for rows.Next() {
 		var videoResponse types.VideoResponse
-		err := rows.Scan(&videoResponse.ID, &videoResponse.Title, &videoResponse.Description, &videoResponse.CategoryID)
+		err := rows.Scan(&videoResponse.ID, &videoResponse.Title, &videoResponse.Description, &videoResponse.CategoryID, &videoResponse.Username)
 
 		if err != nil {
 			http.Error(w, "Error Scanning Rows", http.StatusInternalServerError)
@@ -74,7 +84,7 @@ func (app App) getVideoHandler(w http.ResponseWriter, r *http.Request, ps httpro
 
 	id := ps.ByName("id")
 
-	err := app.db.QueryRow("SELECT id, title, description, category_id  FROM videos WHERE id = $1", id).Scan(&videoResponse.ID, &videoResponse.Title, &videoResponse.Description, &videoResponse.CategoryID)
+	err := app.db.QueryRow("SELECT videos.id, videos.title, videos.description, videos.category_id, users.username FROM videos, users WHERE videos.id = $1 AND videos.user_id = users.id", id).Scan(&videoResponse.ID, &videoResponse.Title, &videoResponse.Description, &videoResponse.CategoryID)
 
 	if err == sql.ErrNoRows {
 		http.Error(w, "video Not Found", http.StatusNotFound)

@@ -2,10 +2,14 @@ package app
 
 import (
 	"context"
+
+	// "go/types"
 	"log"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/adiyakaihsan/go-http-server/pkg/types"
 )
 
 type loggingResponseWriter struct {
@@ -14,12 +18,8 @@ type loggingResponseWriter struct {
 	// body []byte
 }
 
-type contextKey string
-
-const userInfoKey contextKey = "userInfo"
-
 func middleware(router http.Handler) http.Handler {
-	return loggingMiddleware(JWTAuthMiddleware(router))
+	return JWTAuthMiddleware(loggingMiddleware(router))
 }
 
 func loggingMiddleware(next http.Handler) http.Handler {
@@ -27,7 +27,9 @@ func loggingMiddleware(next http.Handler) http.Handler {
 		lrw := newLoggingResponseWriter(w)
 
 		now := time.Now()
+
 		next.ServeHTTP(lrw, r)
+
 		duration := time.Since(now)
 		log.Printf("Received Request: %s %s %dms %d", r.Method, r.URL.Path, duration.Milliseconds(), lrw.statusCode)
 	})
@@ -52,7 +54,7 @@ func JWTAuthMiddleware(next http.Handler) http.Handler {
 				return
 			}
 
-			ctx := context.WithValue(context.Background(), userInfoKey, claims)
+			ctx := context.WithValue(r.Context(), types.UserInfoKey, claims)
 
 			r = r.WithContext(ctx)
 

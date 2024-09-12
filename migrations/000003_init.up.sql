@@ -1,0 +1,2 @@
+ALTER TABLE videos
+ADD COLUMN user_id INT REFERENCES users(id);
